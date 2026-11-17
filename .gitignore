@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.data/
+*.log
+next-env.d.ts
+.env*
+.superpowers/
+.playwright-cli/
+.playwright-mcp/
+tsconfig.tsbuildinfo
+output/

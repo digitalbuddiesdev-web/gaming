@@ -1,0 +1,14 @@
+/* Home page: reference-style game rows (Game | 1 | X | 2) */
+.game-section { background: var(--panel); border: 1px solid var(--line); margin-bottom: 12px; }
+.game-head { display: flex; align-items: center; padding: 6px 10px; background: #e8ecf1; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14px; }
+.game-head .g { flex: 1; }
+.game-head .c { width: 90px; text-align: center; }
+.game-row { display: flex; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.game-row:last-child { border-bottom: 0; }
+.game-row .g { flex: 1; font-size: 13px; }
+.game-row .g .muted { font-size: 11px; }
+.game-row .c { width: 90px; text-align: center; }
+.price-cell { display: inline-block; min-width: 60px; padding: 3px 6px; margin: 1px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 12px; text-align: center; }
+.price-cell:hover { background: var(--accent); color: #fff; text-decoration: none; }
+.price-cell b { color: var(--credit); }
+.price-cell:hover b { color: #fff; }
