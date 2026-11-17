@@ -188,3 +188,26 @@ create table if not exists simulated_game_rounds (
 create index if not exists sim_games_acc_idx on simulated_game_rounds (account_id, created_at desc);
 create index if not exists sim_games_op_idx  on simulated_game_rounds (operator_id, game_type);
 
+-- The app connects as the table owner, which bypasses RLS. Enabling it keeps any
+-- future anon/authenticated key locked out until explicit policies are added.
+alter table operators             enable row level security;
+alter table accounts              enable row level security;
+alter table sessions              enable row level security;
+alter table transactions          enable row level security;
+alter table casino_providers      enable row level security;
+alter table casino_games          enable row level security;
+alter table casino_markets        enable row level security;
+alter table sport_events          enable row level security;
+alter table sport_markets         enable row level security;
+alter table bets                  enable row level security;
+alter table simulated_game_rounds enable row level security;
+
+-- IP token bucket for Server Action throttling. tokens = -1 means the last
+-- request was refused; the refill clamps it back to zero before accruing.
+create table if not exists rate_limit_buckets (
+  key        text primary key,
+  tokens     numeric not null,
+  updated_at timestamptz not null default now()
+);
+alter table rate_limit_buckets enable row level security;
+

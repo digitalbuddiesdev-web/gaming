@@ -84,6 +84,16 @@ a:hover { text-decoration: underline; }
 .card .sub { color: var(--muted); margin: 0 0 16px; }
 
 table { width: 100%; border-collapse: collapse; }
+/* shortcut: wide tables scroll inside their card instead of widening the page. */
+@media (max-width: 768px) {
+  .play-page-root .card table,
+  .admin-page-root table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+}
 th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
 th { color: var(--muted); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; }
 tbody tr:hover { background: #f1f5f9; }
@@ -175,9 +185,10 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .price span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stake-input { width: 110px; }
 @media (max-width: 760px) {
-  .ladder-row { grid-template-columns: 1fr 1fr; }
+  .ladder-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ladder-name, .stake-input { grid-column: span 2; }
   .stake-input { width: 100%; }
+  .price { min-width: 0; }
 }
 
 /* Provider lobby: vendor chips, category chips, tile grid. */
@@ -534,7 +545,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   .ref-bal-label, .ref-exp-label {
     font-size: 10px;
   }
-  .ref-username-text {
+  .ref-user-meta .ref-username-text {
     display: none;
   }
   .ref-user-badge-btn {
@@ -552,8 +563,23 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   .ref-exp-segment {
     display: none;
   }
+  .ref-bal-label {
+    display: none;
+  }
+  .ref-topbar {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  .ref-user-meta {
+    gap: 6px;
+  }
   .ref-brand-name-text {
     max-width: 80px;
+  }
+}
+@media (max-width: 360px) {
+  .ref-brand-name-text {
+    display: none;
   }
 }
 
@@ -2548,6 +2574,15 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
     gap: 6px;
   }
 }
+@media (max-width: 360px) {
+  .mines-board-card { padding: 10px; }
+  .mines-grid-5x5 {
+    grid-template-columns: repeat(5, 40px);
+    grid-template-rows: repeat(5, 40px);
+    gap: 4px;
+  }
+  .sim-chip-btn { min-width: 0; padding-inline: 2px; }
+}
 .mines-tile {
   background: #141d27;
   border: 2px solid #233140;
@@ -3222,30 +3257,96 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
   border-radius: 50%;
   background: #334155;
 }
-.sim-difficulty-btn {
+.sim-difficulty-list {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 6px;
+}
+.sim-difficulty-row {
+  --level: #10b981;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
   padding: 8px 10px;
-  border-radius: 6px;
+  text-align: left;
+  border-radius: 8px;
   background: #0f1722;
   border: 1px solid #1e2d3d;
+  border-left: 3px solid var(--level);
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
 }
-.sim-difficulty-btn:hover:not(:disabled) {
-  border-color: #f59e0b;
+.sim-difficulty-row:nth-child(2) { --level: #f59e0b; }
+.sim-difficulty-row:nth-child(3) { --level: #f97316; }
+.sim-difficulty-row:nth-child(4) { --level: #ef4444; }
+.sim-difficulty-row:hover:not(:disabled) {
+  background: #172434;
+  border-color: var(--level);
   color: #ffffff;
 }
-.sim-difficulty-btn.active {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: #f59e0b;
-  color: #f59e0b;
+.sim-difficulty-row.active:hover:not(:disabled) {
+  background: #1a2433;
 }
-.sim-difficulty-btn:disabled {
+.sim-difficulty-row.active {
+  background: #1a2433;
+  border-color: var(--level);
+  color: #ffffff;
+  box-shadow: 0 0 0 1px var(--level), 0 0 14px -4px var(--level);
+}
+.sim-difficulty-row:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.difficulty-rank {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #1b2838;
+  color: var(--level);
+  font-size: 12px;
+  font-weight: 800;
+}
+.difficulty-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.difficulty-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.difficulty-detail {
+  font-size: 10px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.difficulty-meter {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+}
+.difficulty-meter span {
+  width: 6px;
+  height: 14px;
+  border-radius: 2px;
+  background: #243347;
+}
+.difficulty-meter span.filled { background: var(--level); }
+@media (max-width: 480px) {
+  .sim-difficulty-row { padding: 7px 8px; gap: 8px; }
+  .difficulty-detail { font-size: 9px; }
+  .difficulty-meter span { width: 5px; }
 }
 
 /* ====================================================================
@@ -4037,6 +4138,79 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .admin-page-root select:focus {
   border-color: #047857 !important;
   background: #ffffff !important;
+}
+
+/* ====================================================================
+   Site-wide motion. All motion is disabled under prefers-reduced-motion.
+   ==================================================================== */
+:root {
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+html { scroll-behavior: smooth; }
+
+@keyframes ui-fade-in {
+  from { opacity: 0.85; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+/* shortcut: no fill-mode so background tabs/screenshots never show invisible content. */
+.card,
+.sim-controls-card,
+.sim-controls-panel,
+.mines-board-card,
+.sim-tower-stage,
+.login-card-container {
+  animation: ui-fade-in var(--motion-base) var(--ease-out);
+}
+.card:nth-child(2),
+.sim-controls-card:nth-child(2),
+.sim-controls-panel:nth-child(2) { animation-delay: 40ms; }
+.card:nth-child(3),
+.sim-controls-card:nth-child(3),
+.sim-controls-panel:nth-child(3) { animation-delay: 80ms; }
+.card:nth-child(n + 4),
+.sim-controls-card:nth-child(n + 4),
+.sim-controls-panel:nth-child(n + 4) { animation-delay: 100ms; }
+
+button:active:not(:disabled),
+.mines-tile:active:not(:disabled),
+.sim-tower-tile:active:not(:disabled),
+.price:active:not(:disabled),
+.sim-difficulty-row:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Compact mobile homepage: tighter vertical rhythm, same content and branding. */
+@media (max-width: 640px) {
+  .ref-ticker-bar { padding: 5px 10px; }
+  .ref-sport-tabs-bar { gap: 5px; margin-bottom: 6px; padding-bottom: 4px; }
+  .ref-sport-tab-btn { padding: 5px 11px; font-size: 12px; }
+  .ref-table-search-row { margin-bottom: 6px; }
+  .ref-filter-input { padding: 6px 10px 6px 30px !important; font-size: 12px !important; }
+  .ref-table-card { margin-bottom: 10px; }
+  .ref-group-title { padding: 2px 0; }
+  .ref-subcol-back, .ref-subcol-lay { padding: 2px 0; }
+  .ref-game-info { padding: 6px 10px; gap: 1px; }
+  .ref-match-name { font-size: 12px; line-height: 1.25; }
+  .ref-match-meta { font-size: 10px; line-height: 1.2; }
+  .ref-match-sport-tag, .ref-match-date { font-size: 10px; line-height: 1.2; }
+  .ref-match-date { margin-top: 0; }
+  .ref-odds-btn { height: 28px; }
+  .ref-providers-section { padding: 10px; margin-bottom: 12px; }
+  .ref-section-heading { font-size: 13px; margin-bottom: 8px; }
+  .ref-provider-chips-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ref-provider-chip-card { padding: 6px 10px; }
+  .ref-provider-chip-name { font-size: 12px; }
+  .ref-footer { margin-top: 14px; padding: 10px 8px; }
 }
 
 

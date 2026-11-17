@@ -12,6 +12,7 @@ import {
   type Account,
 } from "./auth";
 import { one, sql } from "./db";
+import { consume } from "./rate-limit";
 import { move } from "./ledger";
 import { declareResult, placeBet as postBet } from "./casino";
 import { declareSportResult as postSportResult, placeSportBet } from "./sports";
@@ -34,6 +35,8 @@ async function requireStaff(): Promise<Account> {
 export async function login(form: FormData) {
   const username = str(form, "username");
   const password = String(form.get("password") ?? "");
+
+  if (!(await consume("login", 5, 1 / 60))) redirect("/login?error=rate");
 
   const account = await one<{ id: string; password_hash: string; user_status: string; role: string }>(
     `select id, password_hash, user_status, role from accounts where lower(username) = lower($1)`,
@@ -167,6 +170,8 @@ export async function placeBetAction(form: FormData) {
   const stake = str(form, "stake");
   const back = backTo(form, "/play");
 
+  if (!(await consume("bet", 30, 0.5))) redirect(`${back}?error=Too+many+requests`);
+
   let failure: string | null = null;
   try {
     await postBet({
@@ -192,6 +197,8 @@ export async function placeSportBetAction(form: FormData) {
   const selection = str(form, "selection");
   const stake = str(form, "stake");
   const back = backTo(form, "/play/sports");
+
+  if (!(await consume("bet", 30, 0.5))) redirect(`${back}?error=Too+many+requests`);
 
   let failure: string | null = null;
   try {

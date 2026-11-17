@@ -296,20 +296,30 @@ export function TowerGame({
               <span>Difficulty Level</span>
               <span className="text-xs text-amber-400 capitalize">{difficulty}</span>
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["easy", "medium", "hard", "nightmare"] as TowerDifficulty[]).map((d) => (
+            <div className="sim-difficulty-list">
+              {(["easy", "medium", "hard", "nightmare"] as TowerDifficulty[]).map((d, index) => (
                 <button
                   key={d}
+                  type="button"
                   disabled={gameState === "playing"}
                   onClick={() => setDifficulty(d)}
-                  className={`sim-difficulty-btn ${difficulty === d ? "active" : ""}`}
+                  aria-pressed={difficulty === d}
+                  className={`sim-difficulty-row ${difficulty === d ? "active" : ""}`}
                 >
-                  <span className="capitalize font-semibold">{d}</span>
-                  <span className="text-[10px] opacity-75">
-                    {d === "easy" && "4 Tiles &bull; 1 Trap"}
-                    {d === "medium" && "3 Tiles &bull; 1 Trap"}
-                    {d === "hard" && "2 Tiles &bull; 1 Trap"}
-                    {d === "nightmare" && "4 Tiles &bull; 3 Traps"}
+                  <span className="difficulty-rank">{index + 1}</span>
+                  <span className="difficulty-body">
+                    <span className="difficulty-name">{d}</span>
+                    <span className="difficulty-detail">
+                      {d === "easy" && "4 tiles · 1 trap"}
+                      {d === "medium" && "3 tiles · 1 trap"}
+                      {d === "hard" && "2 tiles · 1 trap"}
+                      {d === "nightmare" && "4 tiles · 3 traps"}
+                    </span>
+                  </span>
+                  <span className="difficulty-meter" aria-hidden="true">
+                    {[0, 1, 2, 3].map((step) => (
+                      <span key={step} className={step <= index ? "filled" : ""} />
+                    ))}
                   </span>
                 </button>
               ))}

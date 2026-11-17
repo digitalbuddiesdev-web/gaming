@@ -1,13 +1,9 @@
 // Seeds one operator, an operator admin, a demo client, a dummy game catalog,
 // native casino markets, and dummy sports events with markets.
 // Run once with the dev server stopped: npm run seed
-import { PGlite } from "@electric-sql/pglite";
+import { query, close } from "../lib/db.ts";
 import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
 
-const DATA_DIR = path.join(process.cwd(), ".data", "pg");
-const SCHEMA = path.join(process.cwd(), "db", "schema.sql");
 const PASSWORD = process.env.SEED_PASSWORD || "admin12345";
 
 const hash = (password) => {
@@ -15,14 +11,8 @@ const hash = (password) => {
   return `scrypt$${salt}$${crypto.scryptSync(password, salt, 64).toString("hex")}`;
 };
 
-fs.mkdirSync(DATA_DIR, { recursive: true });
-
-const db = new PGlite(DATA_DIR);
-await db.waitReady;
-await db.exec(fs.readFileSync(SCHEMA, "utf8"));
-
 const operator = (
-  await db.query(
+  await query(
     `insert into operators (slug, name) values ($1, $2)
      on conflict (slug) do update set name = excluded.name
      returning id`,
@@ -31,7 +21,7 @@ const operator = (
 ).rows[0];
 
 const admin = (
-  await db.query(
+  await query(
     `insert into accounts (operator_id, username, full_name, password_hash, role)
      values ($1, $2, $3, $4, 'operator_admin')
      on conflict (operator_id, username) do update set password_hash = excluded.password_hash
@@ -41,7 +31,7 @@ const admin = (
 ).rows[0];
 
 const superadmin = (
-  await db.query(
+  await query(
     `insert into accounts (operator_id, username, full_name, password_hash, role)
      values ($1, $2, $3, $4, 'super_admin')
      on conflict (operator_id, username) do update set password_hash = excluded.password_hash, role = 'super_admin'
@@ -51,7 +41,7 @@ const superadmin = (
 ).rows[0];
 
 const demoUser = (
-  await db.query(
+  await query(
     `insert into accounts (operator_id, parent_id, username, full_name, password_hash, role, mode, balance)
      values ($1, $2, $3, $4, $5, 'client', 'demo', 1500)
      on conflict (operator_id, username) do update set mode = 'demo'
@@ -62,7 +52,7 @@ const demoUser = (
 
 // Give the demo client a matching opening ledger row, but only on first insert.
 if (demoUser.inserted) {
-  await db.query(
+  await query(
     `insert into transactions (operator_id, account_id, kind, amount, closing, description, created_by)
      values ($1, $2, 'credit', 1500, 1500, 'Demo opening balance', $3)`,
     [operator.id, demoUser.id, admin.id],
@@ -82,7 +72,7 @@ const providers = [
 ];
 
 for (const [slug, name, sort] of providers) {
-  await db.query(
+  await query(
     `insert into casino_providers (slug, name, sort_order) values ($1, $2, $3)
      on conflict (slug) do update set name = excluded.name, sort_order = excluded.sort_order`,
     [slug, name, sort],
@@ -90,7 +80,7 @@ for (const [slug, name, sort] of providers) {
 }
 
 // Drop the original placeholder providers if nothing references them.
-await db.query(
+await query(
   `delete from casino_providers p
     where p.slug in ('andar-bahar', 'roulette', 'teen-patti', 'dragon-tiger')
       and not exists (select 1 from casino_markets m where m.provider_id = p.id)
@@ -98,7 +88,7 @@ await db.query(
 );
 
 const providerIds = Object.fromEntries(
-  (await db.query(`select id, slug from casino_providers`)).rows.map((row) => [row.slug, row.id]),
+  (await query(`select id, slug from casino_providers`)).rows.map((row) => [row.slug, row.id]),
 );
 
 // Provider-served catalog: live, slot, virtual, fantasy.
@@ -141,7 +131,7 @@ const games = [
 ];
 
 for (const [provider, slug, name, type, category, sort] of games) {
-  await db.query(
+  await query(
     `insert into casino_games (provider_id, slug, name, type, category, sort_order)
      values ($1, $2, $3, $4, $5, $6)
      on conflict (slug) do update set name = excluded.name, type = excluded.type,
@@ -161,7 +151,7 @@ const nativeMarkets = [
 ];
 
 for (const [provider, name, optionA, optionB, odds] of nativeMarkets) {
-  await db.query(
+  await query(
     `insert into casino_markets (operator_id, provider_id, name, option_a, option_b, odds)
      values ($1, $2, $3, $4, $5, $6)
      on conflict (operator_id, provider_id, name) do nothing`,
@@ -201,13 +191,13 @@ const events = [
 
 for (const [name, sport, hoursAhead, markets] of events) {
   const existing = (
-    await db.query(`select id from sport_events where operator_id = $1 and name = $2`, [operator.id, name])
+    await query(`select id from sport_events where operator_id = $1 and name = $2`, [operator.id, name])
   ).rows[0];
 
   const event =
     existing ??
     (
-      await db.query(
+      await query(
         `insert into sport_events (operator_id, name, sport, starts_at)
          values ($1, $2, $3, now() + make_interval(hours => $4)) returning id`,
         [operator.id, name, sport, hoursAhead],
@@ -215,7 +205,7 @@ for (const [name, sport, hoursAhead, markets] of events) {
     ).rows[0];
 
   for (const [market, optionA, optionB, odds] of markets) {
-    await db.query(
+    await query(
       `insert into sport_markets (operator_id, event_id, name, option_a, option_b, odds)
        values ($1, $2, $3, $4, $5, $6)
        on conflict (operator_id, event_id, name) do nothing`,
@@ -232,4 +222,4 @@ console.log(`  demo     : demouser / ${PASSWORD}`);
 console.log(`  casino   : ${providers.length} providers, ${games.length} catalog games, ${nativeMarkets.length} native markets`);
 console.log(`  sports   : ${events.length} events with dummy team names`);
 console.log("Change the password before this reaches a real environment.");
-await db.close();
+await close();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ProvablyFairShowcase } from "./provably-fair-showcase";
+import { GameTileArt } from "./game-tile-art";
 
 export type LobbyGame = {
   id: string;
@@ -10,8 +11,6 @@ export type LobbyGame = {
   provider_name: string;
   provider_slug: string;
 };
-
-const hue = (slug: string) => [...slug].reduce((n, c) => n + c.charCodeAt(0), 0) % 360;
 
 export function GameLobby({
   title,
@@ -74,25 +73,13 @@ export function GameLobby({
           <p className="muted">No games in this filter.</p>
         ) : (
           <div className="tiles">
-            {games.map((game) => {
-              const h = hue(game.slug);
-              return (
-                <Link key={game.id} className="tile" href={`/play/games/${game.slug}`}>
-                  <span
-                    className="tile-art"
-                    style={game.image_url ? undefined : { background: `linear-gradient(145deg, hsl(${h} 45% 24%), hsl(${(h + 45) % 360} 45% 12%))` }}
-                  >
-                    {game.image_url ? (
-                      <img className="tile-art-img" src={game.image_url} alt="" loading="lazy" />
-                    ) : (
-                      game.name.slice(0, 2).toUpperCase()
-                    )}
-                  </span>
-                  <span className="tile-name">{game.name}</span>
-                  <span className="tile-provider">{game.provider_name}</span>
-                </Link>
-              );
-            })}
+            {games.map((game) => (
+              <Link key={game.id} className="tile" href={`/play/games/${game.slug}`}>
+                <GameTileArt name={game.name} slug={game.slug} imageUrl={game.image_url} />
+                <span className="tile-name">{game.name}</span>
+                <span className="tile-provider">{game.provider_name}</span>
+              </Link>
+            ))}
           </div>
         )}
       </div>

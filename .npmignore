@@ -1,0 +1,12 @@
+scripts/_archive/
+.data/
+.next/
+.git/
+.env*
+node_modules/
+output/
+*.log
+.superpowers/
+.playwright-cli/
+.playwright-mcp/
+tsconfig.tsbuildinfo

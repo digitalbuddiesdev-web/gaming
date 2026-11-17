@@ -114,6 +114,10 @@ export async function declareResult(input: {
       paid += Number(bet.payout);
     }
 
-    return { winners: winners.rows.length, losers: losers.affectedRows ?? 0, paid: paid.toFixed(2) };
+    return {
+      winners: winners.rows.length,
+      losers: losers.affectedRows ?? losers.rowCount ?? 0,
+      paid: paid.toFixed(2),
+    };
   });
 }

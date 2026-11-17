@@ -1,8 +1,8 @@
 "use server";
 
-import type { Transaction } from "@electric-sql/pglite";
 import type { Account } from "./auth.ts";
-import { one, sql, tx } from "./db.ts";
+import { one, sql, tx, type Transaction } from "./db.ts";
+import { consume } from "./rate-limit.ts";
 import { moveIn } from "./ledger.ts";
 import {
   calculateCrashPoint,
@@ -96,6 +96,7 @@ export async function startCrashRound(params: {
   stake: number;
   clientSeed?: string;
 }) {
+  if (!(await consume("bet", 30, 0.5))) throw new Error("Too many requests. Please slow down.");
   const viewer = await getViewer();
   const stake = Number(params.stake);
   if (!Number.isFinite(stake) || stake <= 0) {
@@ -285,6 +286,7 @@ export async function startMinesRound(params: {
   mineCount: number;
   clientSeed?: string;
 }) {
+  if (!(await consume("bet", 30, 0.5))) throw new Error("Too many requests. Please slow down.");
   const viewer = await getViewer();
   const stake = Number(params.stake);
   const mineCount = Math.min(Math.max(Number(params.mineCount) || 3, 1), 24);
@@ -517,6 +519,7 @@ export async function playPlinkoDrop(params: {
   risk: PlinkoRisk;
   clientSeed?: string;
 }) {
+  if (!(await consume("bet", 30, 0.5))) throw new Error("Too many requests. Please slow down.");
   const viewer = await getViewer();
   const stake = Number(params.stake);
   if (!Number.isFinite(stake) || stake <= 0) {
@@ -620,6 +623,7 @@ export async function startTowerRound(params: {
   difficulty: TowerDifficulty;
   clientSeed?: string;
 }) {
+  if (!(await consume("bet", 30, 0.5))) throw new Error("Too many requests. Please slow down.");
   const viewer = await getViewer();
   const stake = Number(params.stake);
   if (!Number.isFinite(stake) || stake <= 0) {

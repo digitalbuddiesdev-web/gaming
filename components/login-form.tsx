@@ -79,7 +79,11 @@ export function LoginForm({ error }: { error?: string }) {
       {error && (
         <div className="login-error-alert" role="alert">
           <AlertTriangle className="ref-inline-icon danger" size={16} />
-          <span>Invalid username or password, or account is currently locked.</span>
+          <span>
+            {error === "rate"
+              ? "Too many attempts. Please try again shortly."
+              : "Invalid username or password, or account is currently locked."}
+          </span>
         </div>
       )}
 

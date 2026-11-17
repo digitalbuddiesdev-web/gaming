@@ -1,5 +1,4 @@
-import type { Transaction } from "@electric-sql/pglite";
-import { tx } from "./db.ts";
+import { tx, type Transaction } from "./db.ts";
 
 export type Movement = {
   accountId: string;

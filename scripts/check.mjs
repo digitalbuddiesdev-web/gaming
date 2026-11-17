@@ -2,6 +2,7 @@
 // in-memory Postgres, so it never touches .data/pg and needs no running server.
 //   npm run check
 process.env.PG_DATA_DIR = "memory://";
+delete process.env.DATABASE_URL; // never let the self-check reach Supabase
 
 const { sql, one } = await import("../lib/db.ts");
 const { placeBet, declareResult } = await import("../lib/casino.ts");
@@ -223,4 +224,13 @@ assert(secondCashout.alreadySettled === true, "a second cashout of the same roun
 const afterCashout = await one(`select balance from accounts where id = $1`, [user.id]);
 assert(Number(afterCashout.balance) === 125, "a settled crash round must credit exactly once (110 -> 125)");
 
-console.log("check: casino + sports settlement, payout, double-settle guard, betting lock, rollback, P/L, report scope, atomic crash cashout and reconciliation OK");
+// IP token bucket must allow exactly the configured burst and then refuse.
+const { consume } = await import("../lib/rate-limit.ts");
+const bucketChecks = [];
+for (let i = 0; i < 5; i++) bucketChecks.push(await consume("check-bucket", 3, 0));
+assert(
+  bucketChecks.join(",") === "true,true,true,false,false",
+  "token bucket must allow exactly capacity requests then refuse",
+);
+
+console.log("check: casino + sports settlement, payout, double-settle guard, betting lock, rollback, P/L, report scope, atomic crash cashout, rate limit OK");
