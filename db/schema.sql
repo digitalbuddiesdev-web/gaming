@@ -171,7 +171,7 @@ create table if not exists simulated_game_rounds (
   id               uuid primary key default gen_random_uuid(),
   operator_id      uuid not null references operators(id),
   account_id       uuid not null references accounts(id),
-  game_type        text not null check (game_type in ('crash', 'mines', 'dice', 'plinko', 'tower')),
+  game_type        text not null check (game_type in ('crash', 'mines', 'dice', 'plinko', 'tower', 'slot', 'cards')),
   server_seed      text not null,
   server_seed_hash text not null,
   client_seed      text not null,
@@ -184,6 +184,12 @@ create table if not exists simulated_game_rounds (
   created_at       timestamptz not null default now(),
   settled_at       timestamptz
 );
+
+-- Widen simulated_game_rounds for new game types (slot, cards)
+alter table simulated_game_rounds drop constraint if exists simulated_game_rounds_game_type_check;
+alter table simulated_game_rounds add constraint simulated_game_rounds_game_type_check check (game_type in ('crash', 'mines', 'dice', 'plinko', 'tower', 'slot', 'cards', 'roulette', 'baccarat', 'dragon_tiger'));
+alter table simulated_game_rounds drop constraint if exists simulated_game_rounds_status_check;
+alter table simulated_game_rounds add constraint simulated_game_rounds_status_check check (status in ('active', 'won', 'lost', 'cashed_out', 'push'));
 
 create index if not exists sim_games_acc_idx on simulated_game_rounds (account_id, created_at desc);
 create index if not exists sim_games_op_idx  on simulated_game_rounds (operator_id, game_type);

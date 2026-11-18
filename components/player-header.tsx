@@ -68,21 +68,12 @@ export function PlayerHeader({
             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          <Link href="/play" className="ref-brand-logo-custom">
-            <svg
-              className="ref-brand-emblem"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-            <span className="ref-brand-name-text">{brandName}</span>
+          <Link href="/play" className="ref-brand-logo-custom" title={brandName}>
+            <img
+              src="/images/brand-logo.jpg"
+              alt={brandName}
+              className="ref-brand-img-logo"
+            />
           </Link>
         </div>
 

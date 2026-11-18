@@ -224,7 +224,7 @@ export function TowerGame({
             className="sim-fair-btn"
             title="Provably Fair Verification"
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-sky-400" />
             <span>Fairness</span>
           </button>
         </div>
@@ -331,7 +331,7 @@ export function TowerGame({
             <div className="sim-active-stat-box">
               <div className="flex justify-between items-center text-xs text-slate-400 mb-1">
                 <span>Current Floor</span>
-                <span className="font-semibold text-emerald-400">
+                <span className="font-semibold text-sky-400">
                   Floor {currentFloor} / 8
                 </span>
               </div>
@@ -396,13 +396,13 @@ export function TowerGame({
           {/* Header Progress indicator */}
           <div className="sim-tower-top-banner">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <TrendingUp className="w-4 h-4 text-sky-400" />
               <span className="text-xs font-semibold text-slate-300">
                 Summit Multiplier: {calculateTowerMultiplier(difficulty, 8).toFixed(2)}x
               </span>
             </div>
             {gameState === "won" && (
-              <span className="text-xs font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/30">
+              <span className="text-xs font-bold text-sky-400 px-2 py-0.5 rounded bg-blue-950/60 border border-blue-500/30">
                 CASHED OUT: +${(stake * currentMultiplier - stake).toFixed(2)}
               </span>
             )}
@@ -437,7 +437,7 @@ export function TowerGame({
                   {/* Floor Level & Multiplier Tag */}
                   <div className="sim-floor-label">
                     <span className="text-[11px] font-mono text-slate-400">F{floorNumber}</span>
-                    <span className={`text-[11px] font-bold ${isCleared ? "text-emerald-400" : isCurrent ? "text-amber-400" : "text-slate-500"}`}>
+                    <span className={`text-[11px] font-bold ${isCleared ? "text-sky-400" : isCurrent ? "text-amber-400" : "text-slate-500"}`}>
                       {floorMult.toFixed(2)}x
                     </span>
                   </div>
@@ -473,7 +473,7 @@ export function TowerGame({
                           }`}
                         >
                           {wasSafe ? (
-                            <Gem className="w-5 h-5 text-emerald-400 animate-bounce" />
+                            <Gem className="w-5 h-5 text-sky-400 animate-bounce" />
                           ) : wasTrap ? (
                             <Skull className="w-5 h-5 text-rose-500 animate-pulse" />
                           ) : isRevealedTrap ? (
@@ -498,7 +498,7 @@ export function TowerGame({
           <div className="sim-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="sim-modal-header">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <ShieldCheck className="w-5 h-5 text-sky-500" />
                 <h3 className="text-lg font-bold text-slate-900">Provably Fair Tower Auditor</h3>
               </div>
               <button
@@ -535,7 +535,7 @@ export function TowerGame({
 
                   <div className="sim-field-box">
                     <span className="sim-field-label">Revealed Server Seed</span>
-                    <span className="font-mono text-xs text-emerald-400 truncate">
+                    <span className="font-mono text-xs text-sky-400 truncate">
                       {settledSeed || "Revealed automatically once round is settled (won or lost)."}
                     </span>
                   </div>
@@ -557,7 +557,7 @@ export function TowerGame({
 
                   {settledSeed && (
                     <button onClick={handleVerifyFairness} className="sim-btn-verify">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                      <CheckCircle2 className="w-4 h-4 text-sky-400" />
                       <span>Verify Trap Layout Integrity</span>
                     </button>
                   )}
@@ -566,7 +566,7 @@ export function TowerGame({
                     <div
                       className={`p-3 rounded-lg text-xs font-mono border ${
                         verifyResult.includes("VERIFIED")
-                          ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                          ? "bg-blue-950/40 border-blue-500/40 text-sky-300"
                           : "bg-rose-950/40 border-rose-500/40 text-rose-300"
                       }`}
                     >

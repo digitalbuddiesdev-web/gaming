@@ -31,25 +31,16 @@ export function LoginForm({ error }: { error?: string }) {
 
   return (
     <div className="login-card-container">
-      {/* Brand Emblem & Header */}
+      {/* Brand Logo & Header */}
       <div className="login-header-zone">
-        <div className="login-brand-emblem-wrap">
-          <svg
-            className="login-brand-emblem"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
+        <div className="login-brand-logo-wrap">
+          <img
+            src="/images/brand-logo.jpg"
+            alt="Apex Exchange Logo"
+            className="login-brand-logo-img"
+          />
         </div>
-        <h1 className="login-title">CLUB-8910</h1>
-        <p className="login-subtitle">High-Frequency Sportsbook & Gaming Exchange</p>
+        <p className="login-subtitle">High-Frequency Sportsbook &amp; Gaming Exchange</p>
       </div>
 
       {/* Quick Demo Autofill Pills */}

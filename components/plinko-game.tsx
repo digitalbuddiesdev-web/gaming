@@ -365,7 +365,7 @@ export function PlinkoGame({
             className="sim-fair-btn"
             title="Provably Fair Verification"
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-sky-400" />
             <span>Fairness</span>
           </button>
         </div>
@@ -414,7 +414,7 @@ export function PlinkoGame({
           <div className="sim-control-group">
             <label className="sim-control-label">
               <span>Risk Level</span>
-              <span className="text-xs text-emerald-400 capitalize">{risk}</span>
+              <span className="text-xs text-sky-400 capitalize">{risk}</span>
             </label>
             <div className="sim-tabs-row">
               {(["low", "medium", "high"] as PlinkoRisk[]).map((r) => (
@@ -530,7 +530,7 @@ export function PlinkoGame({
           <div className="sim-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="sim-modal-header">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <ShieldCheck className="w-5 h-5 text-sky-500" />
                 <h3 className="text-lg font-bold text-slate-900">Provably Fair Plinko Auditor</h3>
               </div>
               <button
@@ -566,7 +566,7 @@ export function PlinkoGame({
 
                   <div className="sim-field-box">
                     <span className="sim-field-label">Revealed Server Seed</span>
-                    <span className="font-mono text-xs text-emerald-400 truncate">
+                    <span className="font-mono text-xs text-sky-400 truncate">
                       {lastRoundInfo.serverSeed}
                     </span>
                   </div>
@@ -587,7 +587,7 @@ export function PlinkoGame({
                   </div>
 
                   <button onClick={handleVerifyFairness} className="sim-btn-verify">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-sky-400" />
                     <span>Run Cryptographic Verification</span>
                   </button>
 
@@ -595,7 +595,7 @@ export function PlinkoGame({
                     <div
                       className={`p-3 rounded-lg text-xs font-mono border ${
                         verifyResult.includes("VERIFIED")
-                          ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                          ? "bg-blue-950/40 border-blue-500/40 text-sky-300"
                           : "bg-rose-950/40 border-rose-500/40 text-rose-300"
                       }`}
                     >

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { placeSportBetAction } from "@/lib/actions";
 import { X, Search } from "lucide-react";
+import { ProvablyFairShowcase } from "./provably-fair-showcase";
 
 export type EventItem = {
   id: string;
@@ -324,6 +325,9 @@ export function ExchangeHome({
           </form>
         </div>
       )}
+
+      {/* Provably Fair Originals Showcase */}
+      <ProvablyFairShowcase />
 
       {/* 5. Casino quick access - links to the real market ladder */}
       <div className="ref-table-card ref-casino-card">

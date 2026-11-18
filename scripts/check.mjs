@@ -8,7 +8,9 @@ const { sql, one } = await import("../lib/db.ts");
 const { placeBet, declareResult } = await import("../lib/casino.ts");
 const { placeSportBet, declareSportResult } = await import("../lib/sports.ts");
 const { accountReport } = await import("../lib/reports.ts");
-const { settleCrashCashout } = await import("../lib/simulated-actions.ts");
+const simActions = await import("../lib/simulated-actions.ts");
+const { settleCrashCashout } = await import("../lib/round-settlement.ts");
+const { evaluateRouletteBets } = await import("../lib/provably-fair.ts");
 
 const assert = (ok, message) => {
   if (!ok) {
@@ -233,4 +235,57 @@ assert(
   "token bucket must allow exactly capacity requests then refuse",
 );
 
-console.log("check: casino + sports settlement, payout, double-settle guard, betting lock, rollback, P/L, report scope, atomic crash cashout, rate limit OK");
+// Security regressions: neither money path may trust caller-supplied identity/stakes.
+assert(
+  !("settleCrashCashout" in simActions),
+  "raw crash settlement must not be exported as a server action",
+);
+
+let rouletteThrew = false;
+try {
+  evaluateRouletteBets(7, [
+    { type: "straight", target: 7, stake: 100 },
+    { type: "straight", target: 8, stake: -99 },
+  ]);
+} catch {
+  rouletteThrew = true;
+}
+assert(rouletteThrew, "a negative roulette stake must be refused");
+
+// UI contract for the new games: shared classes and responsive rules must exist.
+const { readFileSync } = await import("node:fs");
+const uiCss = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+for (const cls of [
+  "sim-modal-overlay",
+  "sim-modal-dialog",
+  "sim-modal-head",
+  "sim-header-titles",
+  "sim-game-badge",
+  "sim-game-name",
+  "sim-history-table-wrapper",
+  "sim-audit-v",
+  "sim-actions-stack",
+]) {
+  assert(uiCss.includes(`.${cls}`), `${cls} must be styled in globals.css`);
+}
+assert(
+  /\.sim-modal-dialog[^}]*max-height[^}]*\}/.test(uiCss) &&
+    /\.sim-modal-dialog[^}]*overflow-y[^}]*\}/.test(uiCss),
+  "the game modal dialog must cap its height and scroll on small screens",
+);
+assert(
+  /\.roulette-wheel-stage\s*\{[^}]*width:\s*100%[^}]*aspect-ratio:\s*1/.test(uiCss),
+  "the roulette wheel must scale fluidly via width and aspect-ratio",
+);
+const responsiveTail = uiCss.slice(uiCss.indexOf("/* Games: responsive overrides */"));
+assert(
+  responsiveTail.includes("@media") &&
+    responsiveTail.includes(".roulette-felt-grid") &&
+    responsiveTail.includes("overflow-x: auto") &&
+    responsiveTail.includes(".baccarat-hands-arena") &&
+    responsiveTail.includes(".dt-battle-arena") &&
+    responsiveTail.includes(".bj-actions-grid"),
+  "the new games need responsive overrides after the legacy breakpoint section",
+);
+
+console.log("check: casino + sports settlement, payout, double-settle guard, betting lock, rollback, P/L, report scope, atomic crash cashout, stake validation, rate limit OK");

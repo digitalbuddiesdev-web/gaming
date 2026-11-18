@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PlayerHeader } from "@/components/player-header";
 import { PlayerSidebar } from "@/components/player-sidebar";
+import { PlatformFooter } from "@/components/platform-footer";
 import {
   Rocket,
   Activity,
@@ -161,8 +162,11 @@ export function PlayerShell({
           >
             <div className="ref-drawer-header">
               <div className="flex items-center gap-2">
-                <ShieldCheck size={18} className="text-emerald-400" />
-                <span className="font-bold text-sm text-white tracking-wide">{brandName}</span>
+                <img
+                  src="/images/brand-logo.jpg"
+                  alt={brandName}
+                  className="ref-brand-img-logo-drawer"
+                />
               </div>
               <button
                 type="button"
@@ -183,25 +187,11 @@ export function PlayerShell({
         {/* Main Content Area */}
         <main className="ref-main-content">
           {children}
-
-          <footer className="ref-footer">
-            <div className="ref-footer-links">
-              <span>Terms & Conditions</span>
-              <span>|</span>
-              <span>Responsible Gaming</span>
-              <span>|</span>
-              <span>24X7 Support</span>
-              <span>|</span>
-              <span className="ref-safe-badge">100% SECURE & AUDITED</span>
-              <span>|</span>
-              <span>Self Exclusion</span>
-            </div>
-            <div className="ref-footer-muted">
-              {brandName} · Autonomous High-Performance Sports & Exchange Engine
-            </div>
-          </footer>
         </main>
       </div>
+
+      {/* Full-Width Platform Footer */}
+      <PlatformFooter brandName={brandName} />
 
       {/* 5. Mobile Native-Like Bottom App Bar (visible on screens < 768px) */}
       <nav className="ref-mobile-bottom-nav" aria-label="Mobile Bottom Navigation">

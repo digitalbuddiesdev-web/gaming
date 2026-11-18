@@ -26,21 +26,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="admin-topbar">
         {/* Brand Zone */}
         <div className="admin-brand-zone">
-          <Link href="/admin" className="ref-brand-logo-custom">
-            <svg
-              className="ref-brand-emblem"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="12 2 2 7 12 12 22 7 12 2" />
-              <polyline points="2 17 12 22 22 17" />
-              <polyline points="2 12 12 17 22 12" />
-            </svg>
-            <span className="ref-brand-name-text">{brandName}</span>
+          <Link href="/admin" className="ref-brand-logo-custom" title={brandName}>
+            <img
+              src="/images/brand-logo.jpg"
+              alt={brandName}
+              className="ref-brand-img-logo"
+            />
           </Link>
           <span className="admin-terminal-badge">BACK OFFICE</span>
         </div>

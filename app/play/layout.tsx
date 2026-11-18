@@ -21,6 +21,8 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
     { name: "CASINO", href: "/play/casino", hasIcon: false },
     { name: "LIVE CASINO", href: "/play/live", hasIcon: false },
     { name: "SLOTS", href: "/play/slots", hasIcon: false },
+    { name: "CARDS", href: "/play/cards", hasIcon: false },
+    { name: "ROULETTE", href: "/play/roulette", hasIcon: false },
     { name: "VIRTUAL", href: "/play/virtual", hasIcon: false },
     { name: "FANTASY", href: "/play/fantasy", hasIcon: false },
     { name: "CRASH", href: "/play/crash", hasIcon: true },
