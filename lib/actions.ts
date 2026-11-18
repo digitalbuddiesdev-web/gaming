@@ -12,6 +12,8 @@ import {
   type Account,
 } from "./auth";
 import { one, sql } from "./db";
+import { canCreateRole } from "./access.ts";
+import { logActivity } from "./activity.ts";
 import { consume } from "./rate-limit";
 import { move } from "./ledger";
 import { declareResult, placeBet as postBet } from "./casino";
@@ -38,8 +40,8 @@ export async function login(form: FormData) {
 
   if (!(await consume("login", 5, 1 / 60))) redirect("/login?error=rate");
 
-  const account = await one<{ id: string; password_hash: string; user_status: string; role: string }>(
-    `select id, password_hash, user_status, role from accounts where lower(username) = lower($1)`,
+  const account = await one<{ id: string; operator_id: string; password_hash: string; user_status: string; role: string }>(
+    `select id, operator_id, password_hash, user_status, role from accounts where lower(username) = lower($1)`,
     [username],
   );
 
@@ -48,6 +50,13 @@ export async function login(form: FormData) {
   }
 
   await sql(`update accounts set last_login_at = now() where id = $1`, [account.id]);
+  await logActivity({
+    operatorId: account.operator_id,
+    actorId: account.id,
+    targetId: account.id,
+    action: "login",
+    detail: account.role,
+  });
   await startSession(account.id);
   redirect(account.role === "client" ? "/play" : "/admin");
 }
@@ -62,10 +71,9 @@ export async function createAccount(form: FormData) {
 
   const username = str(form, "username");
   const password = String(form.get("password") ?? "");
-  const requested = str(form, "role");
-  let role = "client";
-  if (viewer.role === "super_admin" && requested === "operator_admin") role = "operator_admin";
-  else if (requested === "agent") role = "agent";
+  const requested = str(form, "role") || "client";
+  if (!canCreateRole(viewer.role, requested)) redirect("/admin/new?error=You cannot create that role");
+  const role = requested;
   const mode = str(form, "mode") === "demo" ? "demo" : "real";
   const creditLimit = Number(str(form, "creditLimit") || "0");
   const defaultPct = Number(str(form, "defaultPct") || "0");
@@ -75,12 +83,14 @@ export async function createAccount(form: FormData) {
   if (!Number.isFinite(creditLimit) || creditLimit < 0) redirect("/admin/new?error=Credit limit is not a valid number");
   if (!Number.isFinite(defaultPct) || defaultPct < 0 || defaultPct > 100) redirect("/admin/new?error=Default percent must be between 0 and 100");
 
+  let createdId: string;
   try {
-    await sql(
+    const inserted = await sql<{ id: string }>(
       `insert into accounts
          (operator_id, parent_id, username, full_name, password_hash, role, mode,
           credit_limit, default_pct, deposit_mobile)
-       values ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric, $10)`,
+       values ($1, $2, $3, $4, $5, $6, $7, $8::numeric, $9::numeric, $10)
+       returning id`,
       [
         viewer.operator_id,
         viewer.id,
@@ -94,11 +104,20 @@ export async function createAccount(form: FormData) {
         orNull(form, "depositMobile"),
       ],
     );
+    createdId = inserted[0].id;
   } catch (error) {
     const message = (error as Error).message ?? "";
     const hint = /duplicate key|unique/i.test(message) ? "Username already taken" : "Could not create account";
     redirect(`/admin/new?error=${encodeURIComponent(hint)}`);
   }
+
+  await logActivity({
+    operatorId: viewer.operator_id,
+    actorId: viewer.id,
+    targetId: createdId,
+    action: "account_created",
+    detail: `${role} ${username}`,
+  });
 
   revalidatePath("/admin");
   redirect("/admin");
@@ -130,6 +149,16 @@ export async function adjustBalance(form: FormData) {
     failure = (error as Error).message;
   }
 
+  if (!failure) {
+    await logActivity({
+      operatorId: viewer.operator_id,
+      actorId: viewer.id,
+      targetId: accountId,
+      action: `balance_${kind}`,
+      detail: `${amount}${description ? ` — ${description}` : ""}`,
+    });
+  }
+
   revalidatePath(back);
   redirect(failure ? `${back}?error=${encodeURIComponent(failure)}` : back);
 }
@@ -156,6 +185,14 @@ export async function setStatus(form: FormData) {
     accountId,
     viewer.operator_id,
   ]);
+
+  await logActivity({
+    operatorId: viewer.operator_id,
+    actorId: viewer.id,
+    targetId: accountId,
+    action: "status_change",
+    detail: `${field} -> ${value}`,
+  });
 
   revalidatePath(back);
   redirect(back);
@@ -246,6 +283,14 @@ export async function createCasinoMarket(form: FormData) {
     redirect(`${back}?error=${encodeURIComponent(hint)}`);
   }
 
+  await logActivity({
+    operatorId: viewer.operator_id,
+    actorId: viewer.id,
+    targetId: viewer.id,
+    action: "market_created",
+    detail: name,
+  });
+
   revalidatePath(back);
   redirect(back);
 }
@@ -266,6 +311,16 @@ export async function declareCasinoResult(form: FormData) {
     await declareResult({ operatorId: viewer.operator_id, marketId, winner, actorId: viewer.id });
   } catch (error) {
     failure = (error as Error).message;
+  }
+
+  if (!failure) {
+    await logActivity({
+      operatorId: viewer.operator_id,
+      actorId: viewer.id,
+      targetId: viewer.id,
+      action: "market_settled",
+      detail: `${marketId} -> ${winner}`,
+    });
   }
 
   revalidatePath(back);
@@ -290,6 +345,14 @@ export async function createSportEvent(form: FormData) {
      values ($1, $2, $3, $4::timestamptz)`,
     [viewer.operator_id, name, sport, when.toISOString()],
   );
+
+  await logActivity({
+    operatorId: viewer.operator_id,
+    actorId: viewer.id,
+    targetId: viewer.id,
+    action: "event_created",
+    detail: name,
+  });
 
   revalidatePath(back);
   revalidatePath("/play/sports");
@@ -328,6 +391,14 @@ export async function createSportMarket(form: FormData) {
     redirect(`${back}?error=${encodeURIComponent(hint)}`);
   }
 
+  await logActivity({
+    operatorId: viewer.operator_id,
+    actorId: viewer.id,
+    targetId: viewer.id,
+    action: "sport_market_created",
+    detail: name,
+  });
+
   revalidatePath(back);
   revalidatePath("/play/sports");
   redirect(back);
@@ -349,6 +420,16 @@ export async function declareSportResult(form: FormData) {
     await postSportResult({ operatorId: viewer.operator_id, marketId, winner, actorId: viewer.id });
   } catch (error) {
     failure = (error as Error).message;
+  }
+
+  if (!failure) {
+    await logActivity({
+      operatorId: viewer.operator_id,
+      actorId: viewer.id,
+      targetId: viewer.id,
+      action: "sport_market_settled",
+      detail: `${marketId} -> ${winner}`,
+    });
   }
 
   revalidatePath(back);

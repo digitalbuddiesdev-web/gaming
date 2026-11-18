@@ -297,7 +297,7 @@ assert(
 // --- Hierarchical RBAC, referral codes, and scoped activity ---
 const { canAct, canCreateRole } = await import("../lib/access.ts");
 const { findAccountByReferralCode } = await import("../lib/referral.ts");
-const { activityFeed } = await import("../lib/activity.ts");
+const { activityFeed, logActivity } = await import("../lib/activity.ts");
 
 const insertAccount = async (username, role, parentId) =>
   (
@@ -384,6 +384,17 @@ assert(
     (row) => row.target_id === agentAUser.id,
   ),
   "activity feed must be searchable by referral code",
+);
+await logActivity({
+  operatorId: op.id,
+  actorId: admin.id,
+  targetId: agentAUser.id,
+  action: "credit_adjusted",
+  detail: "10",
+});
+assert(
+  (await activityFeed(adminViewer, { action: "credit_adjusted" })).length === 1,
+  "logActivity must write rows that the feed filters by action",
 );
 
 console.log("check: settlement, reporting, RBAC scope, referral codes, activity, rate limit OK");
