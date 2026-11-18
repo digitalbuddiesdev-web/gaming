@@ -43,6 +43,13 @@ const REPORTS = [
     icon: Users,
     badge: "DOWNLINE",
   },
+  {
+    href: "/admin/activity",
+    title: "Activity Log",
+    body: "Chronological actions across your accounts, including logins, balances, and wagers.",
+    icon: Activity,
+    badge: "AUDIT",
+  },
 ];
 
 export const metadata = {

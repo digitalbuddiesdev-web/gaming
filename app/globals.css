@@ -6873,6 +6873,35 @@ button:active:not(:disabled),
   }
 }
 
+/* Referral handles and the lightweight activity/list filters. */
+.admin-ref-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.admin-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.admin-filter-input {
+  min-width: 180px;
+  max-width: 240px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 8px 11px;
+  font-size: 13px;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+.admin-filter-input:focus {
+  border-color: #2563eb;
+  background: #fff;
+  outline: none;
+}
+
 
 
 

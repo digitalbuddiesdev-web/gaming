@@ -47,7 +47,7 @@ export default async function ProfitLossReport() {
                 <tr key={row.id}>
                   <td className="num muted">{index + 1}</td>
                   <td><Link href={`/admin/clients/${row.id}`}>{row.username}</Link></td>
-                  <td>{row.role === "client" ? "Client" : "Agent"}</td>
+                  <td>{row.role === "client" ? "User" : "Agent"}</td>
                   <td className="num">{money(row.casino_stake)}</td>
                   <td className="num">{money(row.casino_payout)}</td>
                   <td className="num">{money(row.sport_stake)}</td>

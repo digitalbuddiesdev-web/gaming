@@ -12,6 +12,7 @@ import {
   ExternalLink,
   ShieldCheck,
   User,
+  Activity,
 } from "lucide-react";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -54,6 +55,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <BarChart3 size={14} className="ref-inline-icon" />
             <span>Reports</span>
           </Link>
+          <Link href="/admin/activity" className="admin-nav-item">
+            <Activity size={14} className="ref-inline-icon" />
+            <span>Activity</span>
+          </Link>
           <Link href="/admin/new" className="admin-nav-item highlight">
             <UserPlus size={14} className="ref-inline-icon" />
             <span>New Account</span>
@@ -73,7 +78,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <User size={13} className="ref-inline-icon accent" />
             <span className="admin-username">{viewer.username}</span>
             <span className="admin-role-pill">
-              {viewer.role === "super_admin" ? "SUPER ADMIN" : "OPERATOR ADMIN"}
+              {viewer.role === "super_admin"
+                ? "SUPER ADMIN"
+                : viewer.role === "operator_admin"
+                ? "ADMIN"
+                : viewer.role === "agent"
+                ? "AGENT"
+                : "USER"}
             </span>
           </div>
 

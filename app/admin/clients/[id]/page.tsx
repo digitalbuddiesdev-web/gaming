@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { adjustBalance, setStatus } from "@/lib/actions";
 import { canAct, currentAccount, money, type Account } from "@/lib/auth";
+import { activityFeed } from "@/lib/activity";
 import { one, sql } from "@/lib/db";
 
 type Movement = {
@@ -44,6 +45,7 @@ export default async function ClientDetail({
     [id],
   );
 
+  const activity = await activityFeed(viewer, { targetId: id });
   const isSelf = account.id === viewer.id;
 
   return (
@@ -60,9 +62,17 @@ export default async function ClientDetail({
           {account.mode === "demo" ? <span className="pill pill-demo">demo</span> : null}
         </h1>
         <p className="sub">
-          {account.role === "operator_admin" ? "Operator admin" : account.role === "agent" ? "Agent" : "Client"}
+          {account.role === "super_admin"
+            ? "Super admin"
+            : account.role === "operator_admin"
+            ? "Admin"
+            : account.role === "agent"
+            ? "Agent"
+            : "User"}
           {account.full_name ? ` · ${account.full_name}` : ""}
           {account.deposit_mobile ? ` · deposit ${account.deposit_mobile}` : ""}
+          {" · Referral code "}
+          <code>{account.referral_code}</code>
         </p>
 
         <div className="grid-3" style={{ marginBottom: 18 }}>
@@ -157,6 +167,35 @@ export default async function ClientDetail({
                   <td className="num credit">{row.kind === "credit" ? money(row.amount) : ""}</td>
                   <td className="num debit">{row.kind === "debit" ? money(row.amount) : ""}</td>
                   <td className="num">{money(row.closing)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card">
+        <h2>Recent activity</h2>
+        <p className="sub">Newest first. Actor or target is this account.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Action</th>
+              <th>Actor</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activity.length === 0 ? (
+              <tr><td colSpan={4} className="muted">No activity yet.</td></tr>
+            ) : (
+              activity.map((row) => (
+                <tr key={row.id}>
+                  <td className="muted">{when(row.created_at)}</td>
+                  <td>{row.action.replaceAll("_", " ")}</td>
+                  <td>{row.actor ?? "—"}</td>
+                  <td>{row.detail ?? "—"}</td>
                 </tr>
               ))
             )}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentAccount, money } from "@/lib/auth";
+import { scopeParams, visibleAccountScope } from "@/lib/access";
 import { sql } from "@/lib/db";
 import {
   Users,
@@ -18,6 +19,7 @@ type Row = {
   id: string;
   username: string;
   full_name: string | null;
+  referral_code: string;
   role: string;
   mode: "real" | "demo";
   balance: string;
@@ -32,25 +34,27 @@ export const metadata = {
   description: "Manage operator accounts, balance movements, and betting permissions.",
 };
 
-export default async function ClientList() {
+export default async function ClientList({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const viewer = await currentAccount();
   if (!viewer) redirect("/login");
 
-  const isAdmin = viewer.role === "super_admin" || viewer.role === "operator_admin";
+  const q = (await searchParams).q?.trim() ?? "";
+  const params: unknown[] = scopeParams(viewer);
+  let filter = "";
+  if (q) {
+    params.push(`%${q}%`);
+    filter = ` and (lower(a.username) like lower($${params.length})
+                  or lower(coalesce(a.full_name, '')) like lower($${params.length})
+                  or lower(a.referral_code) like lower($${params.length}))`;
+  }
   const rows = await sql<Row>(
-    isAdmin
-      ? `select id, username, full_name, role, mode, balance, credit_limit, default_pct, user_status, bet_status
-           from accounts where operator_id = $1
-          order by created_at`
-      : `with recursive downline as (
-           select id from accounts where id = $1
-           union all
-           select a.id from accounts a join downline d on a.parent_id = d.id
-         )
-         select id, username, full_name, role, mode, balance, credit_limit, default_pct, user_status, bet_status
-           from accounts where id in (select id from downline) and id <> $1
-          order by created_at`,
-    [isAdmin ? viewer.operator_id : viewer.id],
+    `${visibleAccountScope}
+     select a.id, a.username, a.full_name, a.referral_code, a.role, a.mode, a.balance,
+            a.credit_limit, a.default_pct, a.user_status, a.bet_status
+       from accounts a
+      where a.id in (select id from scope) ${filter}
+      order by a.created_at`,
+    params,
   );
 
   const totalPoints = rows.reduce((sum, row) => sum + Number(row.balance), 0);
@@ -114,9 +118,16 @@ export default async function ClientList() {
       <div className="admin-table-card">
         <div className="admin-table-header">
           <h2 className="admin-card-heading">Registered Accounts ({rows.length})</h2>
-          <span className="admin-card-tip">
-            Click &quot;Manage&quot; to credit points, adjust limits, or toggle locks.
-          </span>
+          <form method="get" className="admin-filter-bar">
+            <input
+              name="q"
+              className="admin-filter-input"
+              defaultValue={q}
+              placeholder="Search name or referral code"
+              aria-label="Search accounts"
+            />
+            <button className="admin-btn-secondary" type="submit">Search</button>
+          </form>
         </div>
 
         <div className="admin-table-wrapper">
@@ -124,6 +135,7 @@ export default async function ClientList() {
             <thead>
               <tr>
                 <th>Account</th>
+                <th>Referral Code</th>
                 <th>Role & Mode</th>
                 <th className="num">Balance</th>
                 <th className="num">Credit Limit</th>
@@ -136,7 +148,7 @@ export default async function ClientList() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="admin-empty-table">
+                  <td colSpan={9} className="admin-empty-table">
                     No accounts registered in this downline. Click &quot;Create Account&quot; to add one.
                   </td>
                 </tr>
@@ -161,6 +173,9 @@ export default async function ClientList() {
                         </div>
                       </td>
 
+                      {/* Referral Code */}
+                      <td className="num"><span className="admin-ref-code">{row.referral_code}</span></td>
+
                       {/* Role & Mode */}
                       <td>
                         <div className="admin-role-cell">
@@ -171,7 +186,7 @@ export default async function ClientList() {
                               ? "Admin"
                               : row.role === "agent"
                               ? "Agent"
-                              : "Client"}
+                              : "User"}
                           </span>
                           <span
                             className={`admin-mode-pill ${row.mode === "demo" ? "demo" : "real"}`}

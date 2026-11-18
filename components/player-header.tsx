@@ -16,6 +16,7 @@ import {
   Gamepad2,
   LogOut,
   HelpCircle,
+  Activity,
 } from "lucide-react";
 
 export function PlayerHeader({
@@ -164,6 +165,14 @@ export function PlayerHeader({
                 >
                   <TrendingUp size={14} className="ref-menu-icon" />
                   <span>Profit & Loss Summary</span>
+                </Link>
+                <Link
+                  href="/play/activity"
+                  className="ref-menu-item"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  <Activity size={14} className="ref-menu-icon" />
+                  <span>Activity Log</span>
                 </Link>
                 <Link
                   href="/play/sports"
