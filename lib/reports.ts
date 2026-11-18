@@ -1,27 +1,8 @@
 import type { Account } from "./auth";
 import { sql } from "./db.ts";
+import { visibleAccountScope as scopeCte, scopeParams } from "./access.ts";
 
-/**
- * Staff scope: an operator admin sees every account in the operator, an agent
- * only their own downline. Bind $1 operator, $2 viewer account, $3 isAdmin.
- */
-export const scopeCte = `
-  with recursive downline as (
-    select id from accounts where id = $2
-    union all
-    select a.id from accounts a join downline d on a.parent_id = d.id
-  ),
-  scope as (
-    select id from accounts
-     where operator_id = $1 and ($3::boolean or id in (select id from downline))
-  )
-`;
-
-const scopeParams = (viewer: Account) => [
-  viewer.operator_id,
-  viewer.id,
-  viewer.role === "super_admin" || viewer.role === "operator_admin",
-];
+export { scopeCte };
 
 export type VisibleAccount = {
   id: string;

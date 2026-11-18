@@ -31,6 +31,28 @@ create table if not exists accounts (
 
 create index if not exists accounts_tree_idx on accounts (operator_id, parent_id);
 
+-- Public, immutable referral id. parent_id stays the single hierarchy edge;
+-- this code is only a human-searchable handle for that same relationship.
+alter table accounts add column if not exists referral_code text;
+update accounts set referral_code = upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))
+ where referral_code is null;
+alter table accounts alter column referral_code set default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+alter table accounts alter column referral_code set not null;
+create unique index if not exists accounts_referral_code_key on accounts (referral_code);
+
+create or replace function accounts_referral_code_immutable() returns trigger
+language plpgsql as $$
+begin
+  if new.referral_code is distinct from old.referral_code then
+    raise exception 'referral_code is immutable';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists accounts_referral_code_immutable on accounts;
+create trigger accounts_referral_code_immutable before update on accounts
+  for each row execute function accounts_referral_code_immutable();
+
 -- shortcut: usernames are globally unique, not per operator, so login needs no
 -- tenant hint. Relax to (operator_id, lower(username)) when operators start
 -- sharing a login URL.
@@ -194,6 +216,46 @@ alter table simulated_game_rounds add constraint simulated_game_rounds_status_ch
 create index if not exists sim_games_acc_idx on simulated_game_rounds (account_id, created_at desc);
 create index if not exists sim_games_op_idx  on simulated_game_rounds (operator_id, game_type);
 
+-- Activity feed. Actor and target are both indexed because a viewer sees rows
+-- where either endpoint is inside their subtree. Wagers are captured by
+-- triggers so no game entry point can skip logging; staff actions log explicitly.
+create table if not exists activity_log (
+  id          uuid primary key default gen_random_uuid(),
+  operator_id uuid not null references operators(id),
+  actor_id    uuid references accounts(id),
+  target_id   uuid references accounts(id),
+  action      text not null,
+  detail      text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists activity_log_op_idx     on activity_log (operator_id, created_at desc);
+create index if not exists activity_log_target_idx on activity_log (target_id, created_at desc);
+create index if not exists activity_log_actor_idx  on activity_log (actor_id, created_at desc);
+
+create or replace function log_bet_activity() returns trigger
+language plpgsql as $$
+begin
+  insert into activity_log (operator_id, actor_id, target_id, action, detail)
+  values (new.operator_id, new.account_id, new.account_id, 'bet_placed', 'Stake ' || new.stake);
+  return new;
+end;
+$$;
+drop trigger if exists bets_activity on bets;
+create trigger bets_activity after insert on bets
+  for each row execute function log_bet_activity();
+
+create or replace function log_round_activity() returns trigger
+language plpgsql as $$
+begin
+  insert into activity_log (operator_id, actor_id, target_id, action, detail)
+  values (new.operator_id, new.account_id, new.account_id, 'game_round', new.game_type || ' stake ' || new.stake);
+  return new;
+end;
+$$;
+drop trigger if exists simulated_rounds_activity on simulated_game_rounds;
+create trigger simulated_rounds_activity after insert on simulated_game_rounds
+  for each row execute function log_round_activity();
+
 -- The app connects as the table owner, which bypasses RLS. Enabling it keeps any
 -- future anon/authenticated key locked out until explicit policies are added.
 alter table operators             enable row level security;
@@ -207,6 +269,7 @@ alter table sport_events          enable row level security;
 alter table sport_markets         enable row level security;
 alter table bets                  enable row level security;
 alter table simulated_game_rounds enable row level security;
+alter table activity_log         enable row level security;
 
 -- IP token bucket for Server Action throttling. tokens = -1 means the last
 -- request was refused; the refill clamps it back to zero before accruing.

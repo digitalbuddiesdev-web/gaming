@@ -188,7 +188,8 @@ const finalRec = await one(
 assert(Number(finalRec.balance) === Number(finalRec.ledger), "balance must reconcile after sports settlement");
 assert(Number(finalRec.balance) - Number(finalRec.exposure) >= 0, "available balance must cover open exposure");
 
-// An operator admin sees the whole operator, not just their own downline.
+// Scope follows the account tree: super admin sees the operator, admins and
+// agents see only their own subtree. `sibling` is deliberately rootless.
 const sibling = (
   await sql(
     `insert into accounts (operator_id, parent_id, username, password_hash, role, balance)
@@ -198,8 +199,13 @@ const sibling = (
 )[0];
 const adminRows = await accountReport({ id: admin.id, operator_id: op.id, role: "operator_admin" });
 assert(
-  adminRows.some((row) => row.id === user.id) && adminRows.some((row) => row.id === sibling.id),
-  "operator_admin report must cover every account in the operator",
+  adminRows.some((row) => row.id === user.id) && !adminRows.some((row) => row.id === sibling.id),
+  "operator_admin report must cover only its own subtree",
+);
+const superRows = await accountReport({ id: admin.id, operator_id: op.id, role: "super_admin" });
+assert(
+  superRows.some((row) => row.id === user.id) && superRows.some((row) => row.id === sibling.id),
+  "super_admin report must cover every account in the operator",
 );
 
 // A crash cashout must credit at most once, even if called twice for one round.
@@ -288,4 +294,96 @@ assert(
   "the new games need responsive overrides after the legacy breakpoint section",
 );
 
-console.log("check: casino + sports settlement, payout, double-settle guard, betting lock, rollback, P/L, report scope, atomic crash cashout, stake validation, rate limit OK");
+// --- Hierarchical RBAC, referral codes, and scoped activity ---
+const { canAct, canCreateRole } = await import("../lib/access.ts");
+const { findAccountByReferralCode } = await import("../lib/referral.ts");
+const { activityFeed } = await import("../lib/activity.ts");
+
+const insertAccount = async (username, role, parentId) =>
+  (
+    await sql(
+      `insert into accounts (operator_id, parent_id, username, password_hash, role)
+       values ($1, $2, $3, 'x', $4) returning id, referral_code`,
+      [op.id, parentId, username, role],
+    )
+  )[0];
+
+const superAdmin = await insertAccount("checksuper", "super_admin", null);
+const agentA = await insertAccount("checkagenta", "agent", admin.id);
+const agentB = await insertAccount("checkagentb", "agent", admin.id);
+const agentAUser = await insertAccount("checkauser", "client", agentA.id);
+const agentBUser = await insertAccount("checkbuser", "client", agentB.id);
+
+const adminViewer = { id: admin.id, operator_id: op.id, role: "operator_admin" };
+const superViewer = { id: superAdmin.id, operator_id: op.id, role: "super_admin" };
+const agentAViewer = { id: agentA.id, operator_id: op.id, role: "agent" };
+const clientViewer = { id: agentAUser.id, operator_id: op.id, role: "client" };
+
+const adminCode = (await one(`select referral_code from accounts where id = $1`, [admin.id])).referral_code;
+const userCode = (await one(`select referral_code from accounts where id = $1`, [user.id])).referral_code;
+assert(adminCode && userCode, "existing accounts must have a referral code");
+assert(adminCode !== userCode, "referral codes must be unique");
+assert(
+  (await findAccountByReferralCode(op.id, userCode.toLowerCase())).id === user.id,
+  "referral lookup must be case-insensitive",
+);
+threw = false;
+try {
+  await sql(`update accounts set referral_code = 'CHANGED' where id = $1`, [user.id]);
+} catch {
+  threw = true;
+}
+assert(threw, "referral codes must be immutable");
+
+assert(await canAct(adminViewer, agentAUser.id), "admin must reach its agent's users");
+assert(await canAct(adminViewer, agentBUser.id), "admin must reach its agents' whole subtree");
+assert(!(await canAct(adminViewer, sibling.id)), "admin must not reach a rootless sibling");
+assert(await canAct(superViewer, sibling.id), "super admin must reach the whole operator");
+assert(await canAct(agentAViewer, agentAUser.id), "agent must reach its own users");
+assert(!(await canAct(agentAViewer, agentBUser.id)), "agent must not reach a sibling's users");
+assert(!(await canAct(clientViewer, admin.id)), "client must not act on staff");
+
+assert(canCreateRole("super_admin", "operator_admin"), "super admin must create admins");
+assert(canCreateRole("super_admin", "agent"), "super admin must create agents");
+assert(canCreateRole("super_admin", "client"), "super admin must create users");
+assert(!canCreateRole("operator_admin", "operator_admin"), "admin must not create admins");
+assert(canCreateRole("operator_admin", "agent"), "admin must create agents");
+assert(canCreateRole("agent", "agent"), "agent must create sub-agents");
+assert(canCreateRole("agent", "client"), "agent must create users");
+assert(!canCreateRole("client", "client"), "client must not create users");
+
+const betActivity = await one(`select count(*)::int as n from activity_log where target_id = $1`, [user.id]);
+assert(betActivity.n > 0, "bets must write an activity row for the account");
+
+await sql(
+  `insert into activity_log (operator_id, actor_id, target_id, action, detail)
+   values ($1, $2, $3, 'status_change', 'agentA user locked'),
+          ($1, $4, $5, 'status_change', 'agentB user locked')`,
+  [op.id, agentA.id, agentAUser.id, agentB.id, agentBUser.id],
+);
+const adminFeed = await activityFeed(adminViewer);
+const agentAFeed = await activityFeed(agentAViewer);
+const clientFeed = await activityFeed(clientViewer);
+assert(
+  adminFeed.some((row) => row.target_id === agentAUser.id) &&
+    adminFeed.some((row) => row.target_id === agentBUser.id),
+  "admin activity feed must cover its agents' whole subtree",
+);
+assert(
+  agentAFeed.some((row) => row.target_id === agentAUser.id) &&
+    !agentAFeed.some((row) => row.target_id === agentBUser.id) &&
+    !agentAFeed.some((row) => row.target_id === user.id),
+  "agent activity feed must only cover its own subtree",
+);
+assert(
+  clientFeed.length > 0 && clientFeed.every((row) => row.actor_id === agentAUser.id || row.target_id === agentAUser.id),
+  "client activity feed must only cover itself",
+);
+assert(
+  (await activityFeed(adminViewer, { query: agentAUser.referral_code })).some(
+    (row) => row.target_id === agentAUser.id,
+  ),
+  "activity feed must be searchable by referral code",
+);
+
+console.log("check: settlement, reporting, RBAC scope, referral codes, activity, rate limit OK");

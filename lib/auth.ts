@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { one, sql } from "./db";
 
+export { canAct } from "./access";
+
 const COOKIE = "sid";
 const TTL_SECONDS = 60 * 60 * 24 * 7;
 
@@ -13,6 +15,7 @@ export type Account = {
   parent_id: string | null;
   username: string;
   full_name: string | null;
+  referral_code: string;
   role: Role;
   mode: "real" | "demo";
   balance: string;
@@ -75,27 +78,6 @@ export async function currentAccount(): Promise<Account | null> {
        join operators o on o.id = a.operator_id
       where s.token_hash = $1 and s.expires_at > now() and a.user_status = 'active'`,
     [sha256(token)],
-  );
-}
-
-/** An operator admin reaches the whole operator; an agent reaches only their own subtree. */
-export async function canAct(viewer: Account, accountId: string): Promise<boolean> {
-  if (viewer.role === "client") return false;
-  if (viewer.role === "super_admin" || viewer.role === "operator_admin") {
-    return Boolean(
-      await one(`select 1 from accounts where id = $1 and operator_id = $2`, [accountId, viewer.operator_id]),
-    );
-  }
-  return Boolean(
-    await one(
-      `with recursive downline as (
-         select id from accounts where id = $1
-         union all
-         select a.id from accounts a join downline d on a.parent_id = d.id
-       )
-       select 1 from downline where id = $2`,
-      [viewer.id, accountId],
-    ),
   );
 }
 
